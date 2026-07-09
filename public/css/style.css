@@ -1,0 +1,283 @@
+:root {
+  /* ---- Paleta: terreno de páramo andino, no cliché dark-mode ni cream+terracota ---- */
+  --stone-50:  #F3F1EA;   /* fondo principal, piedra caliza clara */
+  --stone-100: #E8E4D8;
+  --stone-200: #D8D2BF;
+  --moss-900:  #1F2E24;   /* texto principal, verde musgo casi negro */
+  --moss-700:  #33473A;
+  --moss-500:  #4C6355;
+  --forest:    #2C5B3F;   /* primario: verde bosque de páramo */
+  --sienna:    #B5502B;   /* acento de esfuerzo / PR — sienna quemado, no D97757 */
+  --sienna-soft: rgba(181, 80, 43, 0.14);
+  --sky-mist:  #7C93A0;   /* dato secundario, niebla de montaña */
+  --line:      rgba(31, 46, 36, 0.14);
+
+  --font-display: 'Fjalla One', 'Archivo Narrow', Impact, sans-serif;
+  --font-body: 'Source Sans 3', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+
+  --radius: 3px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--stone-50);
+  color: var(--moss-900);
+  font-family: var(--font-body);
+  line-height: 1.5;
+}
+
+/* ---- Curvas de nivel: el elemento firma de la app, usado como separador y fondo de charts ---- */
+.contour-divider {
+  width: 100%;
+  height: 28px;
+  display: block;
+  opacity: 0.5;
+}
+
+.app-shell {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 20px 80px;
+}
+
+header.topbar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 28px 0 14px;
+  border-bottom: 2px solid var(--moss-900);
+}
+
+.brand {
+  font-family: var(--font-display);
+  font-size: 28px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--moss-900);
+}
+.brand .cota-mark { color: var(--sienna); }
+
+.brand-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--sky-mist);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+nav.tabs {
+  display: flex;
+  gap: 2px;
+  margin: 18px 0 24px;
+  border-bottom: 1px solid var(--line);
+}
+nav.tabs button {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: none;
+  border: none;
+  padding: 10px 14px;
+  cursor: pointer;
+  color: var(--moss-500);
+  border-bottom: 2px solid transparent;
+  transition: color .15s ease, border-color .15s ease;
+}
+nav.tabs button.active,
+nav.tabs button:hover {
+  color: var(--moss-900);
+  border-bottom-color: var(--sienna);
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.card h3 {
+  font-family: var(--font-display);
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 14px;
+  color: var(--moss-700);
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 14px;
+}
+.stat {
+  border-left: 3px solid var(--forest);
+  padding-left: 10px;
+}
+.stat .value {
+  font-family: var(--font-display);
+  font-size: 26px;
+  color: var(--moss-900);
+  display: block;
+}
+.stat .label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--sky-mist);
+  letter-spacing: 0.06em;
+}
+.stat.pr .value { color: var(--sienna); }
+
+button.primary {
+  background: var(--forest);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 11px 18px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+button.primary:hover { background: var(--moss-700); }
+
+button.strava {
+  background: #FC4C02;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 11px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+button.ghost {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 9px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--moss-700);
+}
+
+input, select, textarea {
+  font-family: var(--font-body);
+  font-size: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 9px 10px;
+  width: 100%;
+  background: var(--stone-50);
+  color: var(--moss-900);
+}
+label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sky-mist);
+  display: block;
+  margin-bottom: 4px;
+}
+.field { margin-bottom: 14px; }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+}
+
+.workout-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.workout-row:last-child { border-bottom: none; }
+.workout-row .tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: var(--sienna-soft);
+  color: var(--sienna);
+  margin-right: 8px;
+}
+.workout-row .tag.gym { background: rgba(44,91,63,0.12); color: var(--forest); }
+.workout-row .meta { font-size: 13px; color: var(--moss-700); }
+.workout-row .num { font-family: var(--font-mono); font-size: 13px; color: var(--sky-mist); }
+
+.auth-screen {
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 18px;
+}
+.auth-screen p { max-width: 380px; color: var(--moss-500); }
+
+.empty-state {
+  text-align: center;
+  padding: 30px 10px;
+  color: var(--sky-mist);
+  font-size: 13px;
+}
+
+.metric-photo {
+  width: 100%;
+  aspect-ratio: 3/4;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.feed-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.feed-item .avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--forest); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 14px;
+  flex-shrink: 0;
+}
+
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--moss-900);
+  color: var(--stone-50);
+  padding: 10px 18px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  z-index: 50;
+}
+
+@media (max-width: 600px) {
+  .app-shell { padding: 0 14px 70px; }
+  nav.tabs { overflow-x: auto; }
+}

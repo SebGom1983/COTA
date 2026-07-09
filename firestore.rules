@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Perfil público básico (nombre, foto, racha, PRs) — visible para todos, editable solo por el dueño
+    match /profiles/{uid} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Datos privados del usuario: tokens de Strava, config
+    match /users/{uid}/private/{doc} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Entrenos (running + gym), métricas físicas — privados del dueño
+    match /users/{uid}/workouts/{workoutId} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    match /users/{uid}/metrics/{metricId} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Feed comunidad: solo actividades que el usuario decide compartir (write server-side / client con flag)
+    match /feed/{postId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.uid;
+    }
+  }
+}

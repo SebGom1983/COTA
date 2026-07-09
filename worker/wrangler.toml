@@ -1,0 +1,7 @@
+name = "cota-strava-proxy"
+main = "strava-proxy.js"
+compatibility_date = "2024-11-01"
+
+# El client_id no es secreto, pero client_secret sí — configúralo con:
+#   npx wrangler secret put STRAVA_CLIENT_ID
+#   npx wrangler secret put STRAVA_CLIENT_SECRET
