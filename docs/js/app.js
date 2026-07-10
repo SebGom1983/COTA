@@ -72,7 +72,9 @@ function render() {
       <header class="topbar">
         <div>
           <div class="brand"><span class="cota-mark">·</span>COTA</div>
-          <div class="brand-sub">${currentUser.displayName || ""}</div>
+          <div class="brand-sub">${currentUser.displayName || ""}
+            <div style="font-size:13px;color:var(--moss-500)">${currentUser.email || ""}</div>
+          </div>
         </div>
         <button class="ghost" id="btnLogout">Salir</button>
       </header>

@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "firebase-tools": "^15.23.0",
+    "wrangler": "^4.110.0"
+  },
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
+  }
+}
