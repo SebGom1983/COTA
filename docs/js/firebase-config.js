@@ -1,21 +1,18 @@
-// Reemplaza esto con la configuración de TU proyecto de Firebase
-// (Firebase console → Configuración del proyecto → Tus apps → Config)
+// Configuración de TU proyecto de Firebase (cota-98162)
 export const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_PROYECTO.firebaseapp.com",
-  projectId: "TU_PROYECTO",
-  storageBucket: "TU_PROYECTO.appspot.com",
-  messagingSenderId: "TU_SENDER_ID",
-  appId: "TU_APP_ID",
+  apiKey: "AIzaSyAkJHoBs8eoU1J0x2tA98kdplO6tRrB1YY",
+  authDomain: "cota-98162.firebaseapp.com",
+  projectId: "cota-98162",
+  storageBucket: "cota-98162.firebasestorage.app",
+  messagingSenderId: "71304685528",
+  appId: "1:71304685528:web:f2ec905570168545b274ad",
 };
 
-// Client ID de tu app de Strava (público, no es secreto — el secreto vive solo en el Worker de Cloudflare)
+// Client ID de tu app de Strava (lo sacas de https://www.strava.com/settings/api)
 export const STRAVA_CLIENT_ID = "TU_STRAVA_CLIENT_ID";
 
-// URL de tu Worker de Cloudflare desplegado (paso "Worker" del README) — algo como:
-// https://cota-strava-proxy.tu-usuario.workers.dev
+// URL de tu Worker de Cloudflare (lo sacas cuando hagamos "wrangler deploy" más adelante)
 export const STRAVA_PROXY_URL = "https://cota-strava-proxy.TU_SUBDOMINIO.workers.dev";
 
-// Debe coincidir EXACTO con el "Authorization Callback Domain" configurado en tu app de Strava
-// y con la URL donde publiques esta app en GitHub Pages.
-export const STRAVA_REDIRECT_URI = "https://TU_USUARIO.github.io/cota-app/";
+// URL real donde vive tu app en GitHub Pages
+export const STRAVA_REDIRECT_URI = "https://sebgom1983.github.io/COTA/";
