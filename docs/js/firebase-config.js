@@ -12,7 +12,7 @@ export const firebaseConfig = {
 export const STRAVA_CLIENT_ID = "264259";
 
 // URL de tu Worker de Cloudflare (lo sacas cuando hagamos "wrangler deploy" más adelante)
-export const STRAVA_PROXY_URL = "https://cota-app-production.cota-strava-proxy.workers.dev";
+export const STRAVA_PROXY_URL = "https://cota-app.cota-strava-proxy.workers.dev";
 
 // URL real donde vive tu app en GitHub Pages
 export const STRAVA_REDIRECT_URI = "https://sebgom1983.github.io/COTA/";
