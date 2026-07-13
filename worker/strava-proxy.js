@@ -42,6 +42,7 @@ export default {
             client_secret: env.STRAVA_CLIENT_SECRET,
             code,
             grant_type: "authorization_code",
+            redirect_uri: "https://sebgom1983.github.io/COTA/",
           }),
         });
         const data = await res.json();
