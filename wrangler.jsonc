@@ -10,5 +10,10 @@
   },
   "compatibility_flags": [
     "nodejs_compat"
-  ]
+  ],
+  "env": {
+    "production": {
+      "name": "cota-app-production"
+    }
+  }
 }
