@@ -1,5 +1,5 @@
 /* global Chart */
-
+import { fmtPace } from "./analytics.js";
 let paceChart, weightChart;
 
 export function renderPaceChart(canvasId, workouts) {
@@ -29,14 +29,19 @@ export function renderPaceChart(canvasId, workouts) {
       ],
     },
     options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { reverse: true, title: { display: true, text: "min/km (menos = mejor)" } },
-      },
+  responsive: true,
+  plugins: {
+    legend: { display: false },
+    tooltip: { callbacks: { label: (ctx) => `Ritmo: ${fmtPace(ctx.parsed.y)} min/km` } },
+  },
+  scales: {
+    y: {
+      reverse: true,
+      title: { display: true, text: "min/km (menos = mejor)" },
+      ticks: { callback: (val) => fmtPace(val) },
     },
-  });
-}
+  },
+},
 
 export function renderWeightChart(canvasId, metrics) {
   const withWeight = metrics
