@@ -29,19 +29,21 @@ export function renderPaceChart(canvasId, workouts) {
       ],
     },
     options: {
-  responsive: true,
-  plugins: {
-    legend: { display: false },
-    tooltip: { callbacks: { label: (ctx) => `Ritmo: ${fmtPace(ctx.parsed.y)} min/km` } },
-  },
-  scales: {
-    y: {
-      reverse: true,
-      title: { display: true, text: "min/km (menos = mejor)" },
-      ticks: { callback: (val) => fmtPace(val) },
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => `Ritmo: ${fmtPace(ctx.parsed.y)} min/km` } },
+      },
+      scales: {
+        y: {
+          reverse: true,
+          title: { display: true, text: "min/km (menos = mejor)" },
+          ticks: { callback: (val) => fmtPace(val) },
+        },
+      },
     },
-  },
-},
+  });
+}
 
 export function renderWeightChart(canvasId, metrics) {
   const withWeight = metrics
