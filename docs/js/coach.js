@@ -81,8 +81,13 @@ export function cyclingZones(rides) {
 
 // ---------- Carga combinada (running + ciclismo + gym) ----------
 
+// Carga de una sesión, en orden de preferencia:
+// 1) relative_effort de Strava (el más preciso)
+// 2) RPE manual × duración ("session-RPE" de Foster — estándar para sesiones de gym)
+// 3) solo duración en minutos (fallback débil si no registraste RPE)
 function loadOf(w) {
   if (w.relativeEffort) return w.relativeEffort;
+  if (w.rpe && w.durationSec) return (w.durationSec / 60) * w.rpe;
   return (w.durationSec || 0) / 60;
 }
 
