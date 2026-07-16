@@ -44,6 +44,14 @@ export function fmtHMS(totalSeconds) {
     ? `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`
     : `${m}:${String(sec).padStart(2, "0")}`;
 }
+// Convierte un ritmo en minutos DECIMALES (ej. 5.43) al formato min:seg correcto (5:26).
+export function fmtPace(decimalMinPerKm) {
+  if (decimalMinPerKm == null || !isFinite(decimalMinPerKm)) return "-";
+  const totalSeconds = Math.round(decimalMinPerKm * 60);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
 
 // ---------- Carga de entreno: ratio agudo:crónico (ACWR) ----------
 // Cada sesión aporta una "carga". Usamos el relative_effort de Strava si existe (ya viene calibrado
