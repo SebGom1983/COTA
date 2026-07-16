@@ -131,8 +131,11 @@ nav.tabs button:hover {
   text-transform: uppercase;
   color: var(--sky-mist);
   letter-spacing: 0.06em;
+  display: block;
+  margin-top: 4px;
 }
 .stat.pr .value { color: var(--sienna); }
+.stat.pr .label { color: var(--sky-mist); }
 
 button.primary {
   background: var(--forest);
