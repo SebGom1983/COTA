@@ -139,7 +139,7 @@ function dashboardHTML(totalKm, bestPace, lastWeight, gymCount) {
       <h3>Resumen</h3>
       <div class="stat-grid">
         <div class="stat"><span class="value">${totalKm}</span><span class="label">Km totales</span></div>
-        <div class="stat pr"><span class="value">${bestPace ? fmtPace(bestPace) : "-"}</span></div>
+        <div class="stat pr"><span class="value">${bestPace ? fmtPace(bestPace) : "-"}</span><span class="label">Mejor ritmo min/km</span></div>
         <div class="stat"><span class="value">${gymCount}</span><span class="label">Sesiones gym</span></div>
         <div class="stat"><span class="value">${lastWeight || "-"}</span><span class="label">Peso actual kg</span></div>
       </div>
