@@ -10,7 +10,6 @@ import {
 } from "./store.js";
 import { startStravaConnect, handleStravaCallback, isStravaConnected, syncStravaNow } from "./strava.js";
 import { renderPaceChart, renderWeightChart } from "./charts.js";
-import { predictRaceTimes, fmtHMS, detectPRs } from "./analytics.js";
 import { predictRaceTimes, fmtHMS, fmtPace, detectPRs } from "./analytics.js";
 import {
   runningZones,
