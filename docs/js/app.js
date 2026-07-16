@@ -11,6 +11,7 @@ import {
 import { startStravaConnect, handleStravaCallback, isStravaConnected, syncStravaNow } from "./strava.js";
 import { renderPaceChart, renderWeightChart } from "./charts.js";
 import { predictRaceTimes, fmtHMS, detectPRs } from "./analytics.js";
+import { predictRaceTimes, fmtHMS, fmtPace, detectPRs } from "./analytics.js";
 import {
   runningZones,
   cyclingZones,
@@ -186,7 +187,7 @@ function runRow(r) {
         <span class="tag">${r.source === "strava" ? "strava" : "manual"}</span>
         <span class="meta">${r.name || "Carrera"} — ${new Date(r.date).toLocaleDateString("es-CO")}</span>
       </div>
-      <div class="num">${r.distanceKm} km · ${r.avgPaceMinKm ? r.avgPaceMinKm.toFixed(2) + " min/km" : fmtDuration(r.durationSec) + " min"}</div>
+      <div class="num">${r.distanceKm} km · ${r.avgPaceMinKm ? fmtPace(r.avgPaceMinKm) + " min/km" : fmtDuration(r.durationSec) + " min"}</div>
     </div>`;
 }
 
@@ -294,7 +295,7 @@ function coachHTML(runs, rides, allWorkouts) {
       ${rZones.zones.map((z) => `
         <div class="row">
           <div>${z.label}<div style="font-size:11px;color:var(--sky-mist)">${z.desc}</div></div>
-          <div class="num">${z.paceRange[0] ? z.paceRange[0] + "–" : "<"}${z.paceRange[1]} min/km</div>
+          <div class="num">${z.paceRange[0] ? fmtPace(z.paceRange[0]) + "–" : "<"}${fmtPace(z.paceRange[1])} min/km</div>
         </div>`).join("")}
     </div>`
         : ""
@@ -314,7 +315,7 @@ function coachHTML(runs, rides, allWorkouts) {
       <h3>Predicción de tiempos de carrera</h3>
       ${
         predictions.length
-          ? predictions.map((p) => `<div class="row"><div>${p.label}</div><div class="num">${fmtHMS(p.seconds)} (${p.paceMinKm.toFixed(2)} min/km)</div></div>`).join("")
+          ? predictions.map((p) => `<div class="row"><div>${p.label}</div><div class="num">${fmtHMS(p.seconds)} (${fmtPace(p.paceMinKm)} min/km)</div></div>`).join("")
           : `<div class="empty-state">Necesito al menos una carrera reciente de 5km+ para predecir.</div>`
       }
     </div>
