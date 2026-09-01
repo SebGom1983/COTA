@@ -1,15 +1,14 @@
 :root {
-  /* ---- Paleta: terreno de páramo andino, no cliché dark-mode ni cream+terracota ---- */
-  --stone-50:  #F3F1EA;   /* fondo principal, piedra caliza clara */
+  --stone-50:  #F3F1EA;
   --stone-100: #E8E4D8;
   --stone-200: #D8D2BF;
-  --moss-900:  #1F2E24;   /* texto principal, verde musgo casi negro */
+  --moss-900:  #1F2E24;
   --moss-700:  #33473A;
   --moss-500:  #4C6355;
-  --forest:    #2C5B3F;   /* primario: verde bosque de páramo */
-  --sienna:    #B5502B;   /* acento de esfuerzo / PR — sienna quemado, no D97757 */
+  --forest:    #2C5B3F;
+  --sienna:    #B5502B;
   --sienna-soft: rgba(181, 80, 43, 0.14);
-  --sky-mist:  #7C93A0;   /* dato secundario, niebla de montaña */
+  --sky-mist:  #7C93A0;
   --line:      rgba(31, 46, 36, 0.14);
 
   --font-display: 'Fjalla One', 'Archivo Narrow', Impact, sans-serif;
@@ -29,7 +28,6 @@ body {
   line-height: 1.5;
 }
 
-/* ---- Curvas de nivel: el elemento firma de la app, usado como separador y fondo de charts ---- */
 .contour-divider {
   width: 100%;
   height: 28px;
@@ -73,6 +71,7 @@ nav.tabs {
   gap: 2px;
   margin: 18px 0 24px;
   border-bottom: 1px solid var(--line);
+  overflow-x: auto;
 }
 nav.tabs button {
   font-family: var(--font-mono);
@@ -86,6 +85,7 @@ nav.tabs button {
   color: var(--moss-500);
   border-bottom: 2px solid transparent;
   transition: color .15s ease, border-color .15s ease;
+  white-space: nowrap;
 }
 nav.tabs button.active,
 nav.tabs button:hover {
@@ -131,11 +131,8 @@ nav.tabs button:hover {
   text-transform: uppercase;
   color: var(--sky-mist);
   letter-spacing: 0.06em;
-  display: block;
-  margin-top: 4px;
 }
 .stat.pr .value { color: var(--sienna); }
-.stat.pr .label { color: var(--sky-mist); }
 
 button.primary {
   background: var(--forest);

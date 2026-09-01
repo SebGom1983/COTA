@@ -7,9 +7,10 @@ import {
   watchMetrics,
   shareToFeed,
   watchFeed,
+  watchWellness,
 } from "./store.js";
 import { startStravaConnect, handleStravaCallback, isStravaConnected, syncStravaNow } from "./strava.js";
-import { renderPaceChart, renderWeightChart } from "./charts.js";
+import { renderPaceChart, renderWeightChart, renderSleepVsLoadChart } from "./charts.js";
 import { predictRaceTimes, fmtHMS, fmtPace, detectPRs } from "./analytics.js";
 import {
   runningZones,
@@ -18,6 +19,7 @@ import {
   RISK_COPY,
   postWorkoutFeedback,
   suggestNextWorkout,
+  assessRecovery,
   nextRace,
 } from "./coach.js";
 
@@ -26,9 +28,11 @@ let currentUser = null;
 let currentTab = "dashboard";
 let workoutsCache = [];
 let metricsCache = [];
+let wellnessCache = [];
 let stravaConnected = false;
 let unsubWorkouts = null;
 let unsubMetrics = null;
+let unsubWellness = null;
 
 function toast(msg) {
   const el = document.createElement("div");
@@ -62,9 +66,10 @@ function render() {
   }
 
   const runs = workoutsCache.filter((w) => w.type === "run");
+  const rides = workoutsCache.filter((w) => w.type === "ride");
   const gymSessions = workoutsCache.filter((w) => w.type === "gym");
   const totalKm = runs.reduce((s, r) => s + (r.distanceKm || 0), 0).toFixed(1);
-  const bestPace = runs.length ? Math.min(...runs.filter(r=>r.avgPaceMinKm).map((r) => r.avgPaceMinKm)) : null;
+  const bestPace = runs.length ? Math.min(...runs.filter((r) => r.avgPaceMinKm).map((r) => r.avgPaceMinKm)) : null;
   const lastWeight = metricsCache.find((m) => m.weightKg)?.weightKg;
 
   root.innerHTML = `
@@ -72,9 +77,7 @@ function render() {
       <header class="topbar">
         <div>
           <div class="brand"><span class="cota-mark">·</span>COTA</div>
-          <div class="brand-sub">${currentUser.displayName || ""}
-            <div style="font-size:13px;color:var(--moss-500)">${currentUser.email || ""}</div>
-          </div>
+          <div class="brand-sub">${currentUser.displayName || ""}</div>
         </div>
         <button class="ghost" id="btnLogout">Salir</button>
       </header>
@@ -101,14 +104,12 @@ function render() {
 
   const content = document.getElementById("tabContent");
 
-  const rides = workoutsCache.filter((w) => w.type === "ride");
-
   if (currentTab === "dashboard") content.innerHTML = dashboardHTML(totalKm, bestPace, lastWeight, gymSessions.length);
   if (currentTab === "running") content.innerHTML = runningHTML(runs);
   if (currentTab === "ride") content.innerHTML = rideHTML(rides);
   if (currentTab === "gym") content.innerHTML = gymHTML(gymSessions);
   if (currentTab === "fisico") content.innerHTML = fisicoHTML(metricsCache);
-  if (currentTab === "coach") content.innerHTML = coachHTML(runs, rides, workoutsCache);
+  if (currentTab === "coach") content.innerHTML = coachHTML(runs, rides, workoutsCache, wellnessCache);
   if (currentTab === "comunidad") content.innerHTML = comunidadHTML();
 
   attachTabHandlers();
@@ -118,6 +119,9 @@ function render() {
   }
   if (currentTab === "fisico" && metricsCache.some((m) => m.weightKg)) {
     setTimeout(() => renderWeightChart("weightChart", metricsCache), 0);
+  }
+  if (currentTab === "coach" && wellnessCache.length) {
+    setTimeout(() => renderSleepVsLoadChart("sleepLoadChart", wellnessCache, workoutsCache), 0);
   }
 }
 
@@ -147,7 +151,7 @@ function dashboardHTML(totalKm, bestPace, lastWeight, gymCount) {
     <div class="card">
       <h3>Conexión Strava</h3>
       <p style="font-size:13px;color:var(--moss-500);margin-top:0">
-        ${stravaConnected ? "Conectado — tus carreras se sincronizan automáticamente." : "Conecta tu cuenta para importar tus carreras automáticamente."}
+        ${stravaConnected ? "Conectado — tus carreras se sincronizan al abrir la app." : "Conecta tu cuenta para importar tus carreras automáticamente."}
       </p>
       ${
         stravaConnected
@@ -166,7 +170,7 @@ function runningHTML(runs) {
     <div class="card">
       <h3>Registrar carrera manual</h3>
       <form id="runForm" class="form-grid">
-        <div class="field"><label>Fecha</label><input type="date" name="date" required value="${new Date().toISOString().slice(0,10)}"></div>
+        <div class="field"><label>Fecha</label><input type="date" name="date" required value="${new Date().toISOString().slice(0, 10)}"></div>
         <div class="field"><label>Distancia (km)</label><input type="number" step="0.01" name="distanceKm" required></div>
         <div class="field"><label>Duración (min)</label><input type="number" step="0.1" name="durationMin" required></div>
         <div class="field"><label>Notas</label><input type="text" name="name" placeholder="Rodaje suave, series..."></div>
@@ -183,39 +187,13 @@ function runRow(r) {
   return `
     <div class="workout-row">
       <div>
-        <span class="tag">${r.source === "strava" ? "strava" : "manual"}</span>
+        <span class="tag">${r.source === "strava" ? "strava" : r.source === "garmin" ? "garmin" : "manual"}</span>
         <span class="meta">${r.name || "Carrera"} — ${new Date(r.date).toLocaleDateString("es-CO")}</span>
       </div>
-      <div class="num">${r.distanceKm} km · ${r.avgPaceMinKm ? fmtPace(r.avgPaceMinKm) + " min/km" : fmtDuration(r.durationSec) + " min"}</div>
-    </div>`;
-}
-
-function gymHTML(sessions) {
-  return `
-    <div class="card">
-      <h3>Registrar sesión de gym</h3>
-      <form id="gymForm" class="form-grid">
-        <div class="field"><label>Fecha</label><input type="date" name="date" required value="${new Date().toISOString().slice(0,10)}"></div>
-        <div class="field"><label>Grupo muscular</label><input type="text" name="name" placeholder="Piernas, empuje, tirón..." required></div>
-        <div class="field"><label>Duración (min)</label><input type="number" name="durationMin" required></div>
-        <div class="field"><label>Notas / ejercicios</label><input type="text" name="notes" placeholder="Sentadilla 4x8 80kg..."></div>
-        <div class="field" style="align-self:end"><button class="primary" type="submit">Guardar</button></div>
-      </form>
-    </div>
-    <div class="card">
-      <h3>Sesiones (${sessions.length})</h3>
-      ${sessions.length ? sessions.map(gymRow).join("") : `<div class="empty-state">Aún no tienes sesiones de gym.</div>`}
-    </div>`;
-}
-
-function gymRow(g) {
-  return `
-    <div class="workout-row">
-      <div>
-        <span class="tag gym">gym</span>
-        <span class="meta">${g.name} — ${new Date(g.date).toLocaleDateString("es-CO")}</span>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="num">${r.distanceKm} km · ${r.avgPaceMinKm ? fmtPace(r.avgPaceMinKm) + " min/km" : fmtDuration(r.durationSec) + " min"}</div>
+        <button class="ghost" data-delete="${r.id}" style="padding:4px 8px;font-size:11px;">✕</button>
       </div>
-      <div class="num">${g.durationSec ? Math.round(g.durationSec/60) : "-"} min</div>
     </div>`;
 }
 
@@ -224,7 +202,7 @@ function rideHTML(rides) {
     <div class="card">
       <h3>Registrar salida en bici</h3>
       <form id="rideForm" class="form-grid">
-        <div class="field"><label>Fecha</label><input type="date" name="date" required value="${new Date().toISOString().slice(0,10)}"></div>
+        <div class="field"><label>Fecha</label><input type="date" name="date" required value="${new Date().toISOString().slice(0, 10)}"></div>
         <div class="field"><label>Distancia (km)</label><input type="number" step="0.1" name="distanceKm" required></div>
         <div class="field"><label>Duración (min)</label><input type="number" step="0.1" name="durationMin" required></div>
         <div class="field"><label>Notas</label><input type="text" name="name" placeholder="Rodada de fondo, intervalos..."></div>
@@ -241,18 +219,79 @@ function rideRow(r) {
   return `
     <div class="workout-row">
       <div>
-        <span class="tag" style="background:rgba(124,147,160,0.16);color:var(--sky-mist)">${r.source === "strava" ? "strava" : "manual"}</span>
+        <span class="tag" style="background:rgba(124,147,160,0.16);color:var(--sky-mist)">${r.source === "strava" ? "strava" : r.source === "garmin" ? "garmin" : "manual"}</span>
         <span class="meta">${r.name || "Salida"} — ${new Date(r.date).toLocaleDateString("es-CO")}</span>
       </div>
-      <div class="num">${r.distanceKm ? r.distanceKm + " km" : ""} ${r.avgSpeedKmh ? "· " + r.avgSpeedKmh + " km/h" : ""}</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="num">${r.distanceKm ? r.distanceKm + " km" : ""} ${r.avgSpeedKmh ? "· " + r.avgSpeedKmh + " km/h" : ""}</div>
+        <button class="ghost" data-delete="${r.id}" style="padding:4px 8px;font-size:11px;">✕</button>
+      </div>
     </div>`;
 }
 
-function coachHTML(runs, rides, allWorkouts) {
+function gymHTML(sessions) {
+  return `
+    <div class="card">
+      <h3>Registrar sesión de gym</h3>
+      <form id="gymForm" class="form-grid">
+        <div class="field"><label>Fecha</label><input type="date" name="date" required value="${new Date().toISOString().slice(0, 10)}"></div>
+        <div class="field"><label>Grupo muscular</label><input type="text" name="name" placeholder="Piernas, empuje, tirón..." required></div>
+        <div class="field"><label>Duración (min)</label><input type="number" name="durationMin" required></div>
+        <div class="field"><label>Esfuerzo percibido (RPE 1-10)</label><input type="number" name="rpe" min="1" max="10" placeholder="Ej: 7 = duro"></div>
+        <div class="field"><label>Notas / ejercicios</label><input type="text" name="notes" placeholder="Sentadilla 4x8 80kg..."></div>
+        <div class="field" style="align-self:end"><button class="primary" type="submit">Guardar</button></div>
+      </form>
+    </div>
+    <div class="card">
+      <h3>Sesiones (${sessions.length})</h3>
+      ${sessions.length ? sessions.map(gymRow).join("") : `<div class="empty-state">Aún no tienes sesiones de gym.</div>`}
+    </div>`;
+}
+
+function gymRow(g) {
+  return `
+    <div class="workout-row">
+      <div>
+        <span class="tag gym">gym</span>
+        <span class="meta">${g.name} — ${new Date(g.date).toLocaleDateString("es-CO")}${g.rpe ? " · RPE " + g.rpe : ""}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="num">${g.durationSec ? Math.round(g.durationSec / 60) : "-"} min</div>
+        <button class="ghost" data-delete="${g.id}" style="padding:4px 8px;font-size:11px;">✕</button>
+      </div>
+    </div>`;
+}
+
+function fisicoHTML(metrics) {
+  return `
+    <div class="card">
+      <h3>Registrar métrica física</h3>
+      <form id="metricForm" class="form-grid">
+        <div class="field"><label>Fecha</label><input type="date" name="date" required value="${new Date().toISOString().slice(0, 10)}"></div>
+        <div class="field"><label>Peso (kg)</label><input type="number" step="0.1" name="weightKg"></div>
+        <div class="field"><label>% Grasa (opcional)</label><input type="number" step="0.1" name="bodyFat"></div>
+        <div class="field"><label>Foto</label><input type="file" name="photo" accept="image/*"></div>
+        <div class="field" style="align-self:end"><button class="primary" type="submit">Guardar</button></div>
+      </form>
+    </div>
+    <div class="card">
+      <h3>Progreso de peso</h3>
+      <canvas id="weightChart" height="90"></canvas>
+    </div>
+    <div class="card">
+      <h3>Fotos de progreso</h3>
+      <div class="metric-grid">
+        ${metrics.filter((m) => m.photoBase64).map((m) => `<img class="metric-photo" src="${m.photoBase64}" title="${new Date(m.date).toLocaleDateString("es-CO")}">`).join("") || `<div class="empty-state">Sin fotos aún.</div>`}
+      </div>
+    </div>`;
+}
+
+function coachHTML(runs, rides, allWorkouts, wellness) {
   const rZones = runningZones(runs);
   const cZones = cyclingZones(rides);
   const acwr = combinedACWR(allWorkouts);
-  const suggestion = suggestNextWorkout(allWorkouts);
+  const suggestion = suggestNextWorkout(allWorkouts, wellness);
+  const recovery = assessRecovery(wellness);
   const race = nextRace();
   const { predictions } = predictRaceTimes(runs);
   const { recentPRs } = detectPRs(runs);
@@ -261,6 +300,25 @@ function coachHTML(runs, rides, allWorkouts) {
   const feedback = lastWorkout ? postWorkoutFeedback(lastWorkout, allWorkouts) : null;
 
   return `
+    ${
+      recovery
+        ? `<div class="card">
+      <h3>Recuperación de hoy</h3>
+      <div class="stat-grid">
+        <div class="stat"><span class="value">${recovery.today.sleepScore ?? "-"}</span><span class="label">Sueño (score)</span></div>
+        <div class="stat"><span class="value">${recovery.today.restingHR ?? "-"}</span><span class="label">FC reposo</span></div>
+        <div class="stat"><span class="value">${recovery.today.hrvValueMs ?? "-"}</span><span class="label">HRV (ms)</span></div>
+        <div class="stat"><span class="value">${recovery.today.trainingReadinessScore ?? "-"}</span><span class="label">Readiness Garmin</span></div>
+      </div>
+      ${
+        recovery.flags.length
+          ? `<p style="font-size:13px;color:var(--sienna);margin:12px 0 0;">${recovery.flags.join(" · ")}</p>`
+          : `<p style="font-size:13px;color:var(--moss-500);margin:12px 0 0;">Sin señales de alerta — recuperación normal.</p>`
+      }
+    </div>`
+        : `<div class="card"><h3>Recuperación</h3><div class="empty-state">Corre el script de Garmin para ver sueño, HRV y FC en reposo aquí.</div></div>`
+    }
+
     <div class="card">
       <h3>Sugerencia de hoy</h3>
       <div style="font-family:var(--font-display);font-size:20px;color:var(--sienna);margin-bottom:6px;">${suggestion.title}</div>
@@ -291,11 +349,15 @@ function coachHTML(runs, rides, allWorkouts) {
       rZones
         ? `<div class="card">
       <h3>Zonas de running (basadas en tu ritmo umbral estimado)</h3>
-      ${rZones.zones.map((z) => `
+      ${rZones.zones
+        .map(
+          (z) => `
         <div class="row">
           <div>${z.label}<div style="font-size:11px;color:var(--sky-mist)">${z.desc}</div></div>
           <div class="num">${z.paceRange[0] ? fmtPace(z.paceRange[0]) + "–" : "<"}${fmtPace(z.paceRange[1])} min/km</div>
-        </div>`).join("")}
+        </div>`
+        )
+        .join("")}
     </div>`
         : ""
     }
@@ -304,8 +366,7 @@ function coachHTML(runs, rides, allWorkouts) {
       cZones
         ? `<div class="card">
       <h3>Zonas de ciclismo (basadas en ${cZones.basis})</h3>
-      ${cZones.zones.map((z) => `
-        <div class="row"><div>${z.label}</div><div class="num">${z.range[0]}–${z.range[1]} ${cZones.basis === "potencia" ? "W" : "ppm"}</div></div>`).join("")}
+      ${cZones.zones.map((z) => `<div class="row"><div>${z.label}</div><div class="num">${z.range[0]}–${z.range[1]} ${cZones.basis === "potencia" ? "W" : "ppm"}</div></div>`).join("")}
     </div>`
         : `<div class="card"><h3>Zonas de ciclismo</h3><div class="empty-state">Registra salidas con FC o potencia para calcular tus zonas.</div></div>`
     }
@@ -326,30 +387,11 @@ function coachHTML(runs, rides, allWorkouts) {
           ? recentPRs.map((p) => `<div class="row"><div>${p.bucketLabel} — ${new Date(p.date).toLocaleDateString("es-CO")}</div><div class="num">${fmtHMS(p.durationSec)}</div></div>`).join("")
           : `<div class="empty-state">Aún no se detectan PRs — sigue registrando carreras.</div>`
       }
-    </div>`;
-}
+    </div>
 
-function fisicoHTML(metrics) {
-  return `
     <div class="card">
-      <h3>Registrar métrica física</h3>
-      <form id="metricForm" class="form-grid">
-        <div class="field"><label>Fecha</label><input type="date" name="date" required value="${new Date().toISOString().slice(0,10)}"></div>
-        <div class="field"><label>Peso (kg)</label><input type="number" step="0.1" name="weightKg"></div>
-        <div class="field"><label>% Grasa (opcional)</label><input type="number" step="0.1" name="bodyFat"></div>
-        <div class="field"><label>Foto</label><input type="file" name="photo" accept="image/*"></div>
-        <div class="field" style="align-self:end"><button class="primary" type="submit">Guardar</button></div>
-      </form>
-    </div>
-    <div class="card">
-      <h3>Progreso de peso</h3>
-      <canvas id="weightChart" height="90"></canvas>
-    </div>
-    <div class="card">
-      <h3>Fotos de progreso</h3>
-      <div class="metric-grid">
-        ${metrics.filter((m) => m.photoBase64).map((m) => `<img class="metric-photo" src="${m.photoBase64}" title="${new Date(m.date).toLocaleDateString("es-CO")}">`).join("") || `<div class="empty-state">Sin fotos aún.</div>`}
-      </div>
+      <h3>Sueño vs carga de entreno (últimas semanas)</h3>
+      <canvas id="sleepLoadChart" height="100"></canvas>
     </div>`;
 }
 
@@ -407,6 +449,7 @@ function attachTabHandlers() {
     gymForm.onsubmit = async (e) => {
       e.preventDefault();
       const fd = new FormData(gymForm);
+      const rpe = fd.get("rpe") ? parseInt(fd.get("rpe"), 10) : null;
       await addWorkout(currentUser.uid, {
         type: "gym",
         source: "manual",
@@ -414,6 +457,7 @@ function attachTabHandlers() {
         notes: fd.get("notes") || "",
         date: new Date(fd.get("date")).toISOString(),
         durationSec: Math.round(parseFloat(fd.get("durationMin")) * 60),
+        rpe,
       });
       toast("Sesión de gym guardada");
       gymForm.reset();
@@ -440,6 +484,15 @@ function attachTabHandlers() {
     };
   }
 
+  // Botones de borrar (running, ciclismo, gym)
+  document.querySelectorAll("[data-delete]").forEach((btn) => {
+    btn.onclick = async () => {
+      if (!confirm("¿Borrar este entreno? No se puede deshacer.")) return;
+      await deleteWorkout(currentUser.uid, btn.dataset.delete);
+      toast("Entreno borrado");
+    };
+  });
+
   const btnConnectStrava = document.getElementById("btnConnectStrava");
   if (btnConnectStrava) btnConnectStrava.onclick = () => startStravaConnect();
 
@@ -461,9 +514,11 @@ function attachTabHandlers() {
   if (feedList) {
     watchFeed((posts) => {
       feedList.className = "";
-      feedList.innerHTML = posts.length
-        ? posts.map(
-            (p) => `
+      feedList.innerHTML =
+        posts.length
+          ? posts
+              .map(
+                (p) => `
         <div class="feed-item">
           <div class="avatar">${(p.displayName || "?")[0]}</div>
           <div>
@@ -471,8 +526,9 @@ function attachTabHandlers() {
             <div style="font-size:13px;color:var(--moss-500)">${p.summary}</div>
           </div>
         </div>`
-          ).join("")
-        : `<div class="empty-state">Nadie ha compartido nada todavía.</div>`;
+              )
+              .join("")
+          : `<div class="empty-state">Nadie ha compartido nada todavía.</div>`;
     });
   }
 }
@@ -483,6 +539,7 @@ watchAuth(async (user) => {
   currentUser = user;
   if (unsubWorkouts) unsubWorkouts();
   if (unsubMetrics) unsubMetrics();
+  if (unsubWellness) unsubWellness();
 
   if (user) {
     stravaConnected = await isStravaConnected(user.uid);
@@ -494,8 +551,11 @@ watchAuth(async (user) => {
       metricsCache = m;
       render();
     });
+    unsubWellness = watchWellness(user.uid, (w) => {
+      wellnessCache = w;
+      render();
+    });
 
-    // si volvemos de Strava con ?code=..., procesarlo
     const stravaResult = await handleStravaCallback(user.uid).catch((e) => {
       toast("Error conectando Strava: " + e.message);
       return null;

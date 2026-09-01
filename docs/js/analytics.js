@@ -10,8 +10,6 @@ const RACE_DISTANCES = [
   { key: "42k", label: "42.2K (maratón)", km: 42.195 },
 ];
 
-// Elige la "mejor" carrera reciente para basar la predicción: prioriza esfuerzo/distancia relevante
-// (>= 5km) y ritmo más rápido en los últimos 60 días.
 function pickReferenceRun(runs) {
   const cutoff = Date.now() - 60 * 24 * 3600 * 1000;
   const candidates = runs.filter((r) => r.distanceKm >= 5 && new Date(r.date).getTime() >= cutoff && r.durationSec);
@@ -44,7 +42,9 @@ export function fmtHMS(totalSeconds) {
     ? `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`
     : `${m}:${String(sec).padStart(2, "0")}`;
 }
+
 // Convierte un ritmo en minutos DECIMALES (ej. 5.43) al formato min:seg correcto (5:26).
+// Distinto de fmtHMS: acá la entrada ya viene en minutos, no en segundos totales.
 export function fmtPace(decimalMinPerKm) {
   if (decimalMinPerKm == null || !isFinite(decimalMinPerKm)) return "-";
   const totalSeconds = Math.round(decimalMinPerKm * 60);
@@ -54,8 +54,6 @@ export function fmtPace(decimalMinPerKm) {
 }
 
 // ---------- Carga de entreno: ratio agudo:crónico (ACWR) ----------
-// Cada sesión aporta una "carga". Usamos el relative_effort de Strava si existe (ya viene calibrado
-// tipo TSS); si es manual, aproximamos con minutos de duración como proxy de carga.
 
 function dailyLoad(runs, days) {
   const cutoff = Date.now() - days * 24 * 3600 * 1000;

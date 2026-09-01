@@ -38,7 +38,7 @@ function compressImageToBase64(file, maxDim = 500, quality = 0.75) {
   });
 }
 
-// ---------- Entrenos (running manual + gym) ----------
+// ---------- Entrenos (running, ciclismo, gym) ----------
 
 export function addWorkout(uid, workout) {
   return addDoc(collection(db, `users/${uid}/workouts`), {
@@ -51,7 +51,7 @@ export function deleteWorkout(uid, id) {
   return deleteDoc(doc(db, `users/${uid}/workouts/${id}`));
 }
 
-export function watchWorkouts(uid, callback, max = 100) {
+export function watchWorkouts(uid, callback, max = 200) {
   const q = query(collection(db, `users/${uid}/workouts`), orderBy("date", "desc"), limit(max));
   return onSnapshot(q, (snap) => {
     callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -74,6 +74,15 @@ export async function addMetric(uid, metric, photoFile) {
 
 export function watchMetrics(uid, callback, max = 60) {
   const q = query(collection(db, `users/${uid}/metrics`), orderBy("date", "desc"), limit(max));
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  });
+}
+
+// ---------- Datos de recuperación (sueño, HRV, FC reposo — vienen del script de Garmin) ----------
+
+export function watchWellness(uid, callback, max = 60) {
+  const q = query(collection(db, `users/${uid}/wellness`), orderBy("date", "desc"), limit(max));
   return onSnapshot(q, (snap) => {
     callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
   });

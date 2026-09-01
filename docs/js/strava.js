@@ -58,7 +58,6 @@ async function getValidAccessToken(uid) {
     return data.accessToken;
   }
 
-  // token vencido -> refrescar via el Worker
   const res = await fetch(`${STRAVA_PROXY_URL}/refresh`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -98,7 +97,6 @@ async function pullAndSaveActivities(uid) {
   return relevant.length;
 }
 
-// Llamar al cargar la app: revisa si venimos de vuelta de Strava con ?code=...
 export async function handleStravaCallback(uid) {
   const params = new URLSearchParams(window.location.search);
   const code = params.get("code");

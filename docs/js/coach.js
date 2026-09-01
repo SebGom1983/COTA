@@ -22,7 +22,7 @@ export function runningZones(runs) {
   const { predictions } = predictRaceTimes(runs);
   const tenK = predictions.find((p) => p.key === "10k");
   if (!tenK) return null;
-  const threshold = tenK.paceMinKm; // min/km
+  const threshold = tenK.paceMinKm;
 
   const zone = (label, factorLow, factorHigh, desc) => ({
     label,
@@ -45,7 +45,6 @@ export function runningZones(runs) {
   };
 }
 
-// Ciclismo: si hay potencia usamos zonas Coggan aproximadas; si no, zonas por FC.
 export function cyclingZones(rides) {
   const withPower = rides.filter((r) => r.avgWatts);
   if (withPower.length) {
@@ -82,9 +81,10 @@ export function cyclingZones(rides) {
 // ---------- Carga combinada (running + ciclismo + gym) ----------
 
 // Carga de una sesión, en orden de preferencia:
-// 1) relative_effort de Strava (el más preciso)
-// 2) RPE manual × duración ("session-RPE" de Foster — estándar para sesiones de gym)
-// 3) solo duración en minutos (fallback débil si no registraste RPE)
+// 1) relative_effort de Strava (el más preciso, viene calibrado con FC)
+// 2) RPE manual × duración (método "session-RPE" de Foster — estándar en ciencia del deporte
+//    para sesiones de gym/fuerza donde no hay datos de FC o potencia)
+// 3) solo duración en minutos (fallback débil — úsalo solo si no registraste RPE)
 function loadOf(w) {
   if (w.relativeEffort) return w.relativeEffort;
   if (w.rpe && w.durationSec) return (w.durationSec / 60) * w.rpe;
@@ -146,11 +146,51 @@ export function postWorkoutFeedback(workout, allWorkouts) {
   return { verdict, note, ratio: +ratio.toFixed(2) };
 }
 
+// ---------- Evaluación de recuperación (sueño, HRV, FC en reposo — datos de Garmin) ----------
+
+function avg(nums) {
+  const valid = nums.filter((n) => n != null);
+  return valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+}
+
+export function assessRecovery(wellness) {
+  if (!wellness || !wellness.length) return null;
+
+  const sorted = wellness.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+  const today = sorted[0];
+  const baseline = sorted.slice(1, 15); // 14 días previos como referencia
+
+  const baselineRHR = avg(baseline.map((w) => w.restingHR));
+  const baselineHRV = avg(baseline.map((w) => w.hrvValueMs));
+
+  const flags = [];
+  if (today.restingHR && baselineRHR && today.restingHR > baselineRHR + 4) {
+    flags.push("FC en reposo elevada vs tu promedio — señal de fatiga o algo incubándose");
+  }
+  if (today.hrvValueMs && baselineHRV && today.hrvValueMs < baselineHRV * 0.9) {
+    flags.push("HRV por debajo de tu base reciente — cuerpo con estrés acumulado");
+  }
+  if (today.sleepScore != null && today.sleepScore < 60) {
+    flags.push("Dormiste mal — el cuerpo no tuvo tiempo de absorber el entreno de ayer");
+  }
+  if (today.trainingReadinessScore != null && today.trainingReadinessScore < 50) {
+    flags.push("Garmin también te marca readiness baja hoy");
+  }
+
+  let status = "recuperado";
+  if (flags.length >= 2) status = "fatigado";
+  else if (flags.length === 1) status = "alerta";
+
+  return { today, baselineRHR, baselineHRV, flags, status };
+}
+
 // ---------- Sugerencia del próximo entreno ----------
 
-export function suggestNextWorkout(workouts) {
+export function suggestNextWorkout(workouts, wellness = []) {
   const acwr = combinedACWR(workouts);
   const race = nextRace();
+  const recovery = assessRecovery(wellness);
+
   const last3Days = workouts.filter(
     (w) => Date.now() - new Date(w.date).getTime() <= 3 * 24 * 3600 * 1000
   );
@@ -158,8 +198,21 @@ export function suggestNextWorkout(workouts) {
   const lastWasHard = last3Days.some((w) => loadOf(w) > chronicLoad * 1.3);
   const recentTypes = new Set(last3Days.map((w) => w.type));
 
+  // La recuperación real (sueño/HRV/FC reposo) manda sobre las matemáticas de carga
+  if (recovery && recovery.status === "fatigado") {
+    return {
+      title: "Descanso — tu cuerpo lo está pidiendo",
+      reason: `Tu reloj muestra señales claras de fatiga hoy: ${recovery.flags.join("; ")}.`,
+    };
+  }
   if (acwr.zone === "riesgo-alto") {
     return { title: "Descanso o muy suave", reason: RISK_COPY["riesgo-alto"] };
+  }
+  if (recovery && recovery.status === "alerta") {
+    return {
+      title: "Día suave — recuperación parcial",
+      reason: `Una señal de alerta hoy: ${recovery.flags[0]}. No es para cancelar, pero baja la intensidad.`,
+    };
   }
   if (lastWasHard) {
     return {
@@ -181,6 +234,9 @@ export function suggestNextWorkout(workouts) {
   }
   return {
     title: "Sesión de calidad (tempo o series)",
-    reason: "Tu carga está controlada y no vienes de una sesión dura — es un buen momento para estímulo de calidad.",
+    reason:
+      recovery && recovery.status === "recuperado"
+        ? "Carga controlada Y tu reloj confirma buena recuperación — luz verde para algo exigente."
+        : "Tu carga está controlada y no vienes de una sesión dura — es un buen momento para estímulo de calidad.",
   };
 }

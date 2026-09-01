@@ -19,7 +19,6 @@ export function login() {
       doc(db, "profiles", u.uid),
       {
         displayName: u.displayName,
-        email: u.email || null,
         photoURL: u.photoURL,
         updatedAt: new Date().toISOString(),
       },
