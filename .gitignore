@@ -6,3 +6,8 @@ node_modules
 !.dev.vars.example
 .env*
 !.env.example
+scripts/*.json
+scripts/*.json
+scripts/.garth/
+scripts/config.json
+scripts/venv/
